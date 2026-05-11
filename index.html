@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>音声文字起こし</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, sans-serif; background: #fff; overflow: hidden; }
+
+  #top-area {
+    position: absolute; left: 0; right: 0;
+    background: #EAF3DE;
+    overflow: hidden;
+  }
+  #top-btn-bar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    display: flex; gap: 8px; padding: 8px 10px;
+    background: #F5F5F0;
+  }
+  #top-btn-bar .btn, #top-btn-bar .btn.secondary {
+    -webkit-transform: rotate(180deg);
+    transform: rotate(180deg);
+  }
+  #top-text-wrap {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 40px;
+    overflow: hidden;
+  }
+  #top-text {
+    position: absolute; inset: 0;
+    font-size: 36px; padding: 10px 12px;
+    background: #fff; overflow-y: auto;
+    word-break: break-all; white-space: pre-wrap; color: #111;
+    -webkit-transform: rotate(180deg);
+    transform: rotate(180deg);
+  }
+  #top-canvas {
+    position: absolute; top: 0; left: 0;
+    pointer-events: none;
+  }
+
+  #mid-area {
+    position: absolute; left: 0; right: 0;
+    overflow-y: auto; padding: 10px 12px;
+    font-size: 36px; color: #111; background: #fff;
+    word-break: break-all; white-space: pre-wrap;
+    border-top: 2px solid #888; border-bottom: 2px solid #888;
+  }
+  #mid-area.placeholder { color: #bbb; font-size: 18px; }
+
+  #bot-area {
+    position: absolute; left: 0; right: 0;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  #bot-btn-bar {
+    display: flex; gap: 8px; padding: 8px 10px;
+    background: #F0F0EC; align-items: center; flex-shrink: 0;
+  }
+  #bot-btn-bar span { font-size: 13px; color: #666; flex: 1; }
+
+  #draw-canvas { flex: 1; display: block; background: #FAFAF7; touch-action: none; }
+
+  .btn {
+    flex: 1; padding: 8px 4px; border: none; border-radius: 16px;
+    font-size: 14px; font-weight: bold; cursor: pointer;
+    background: #1D9E75; color: #fff;
+  }
+  .btn.secondary {
+    background: transparent; border: 0.5px solid #ccc;
+    color: #555; font-weight: normal;
+  }
+  .btn.recording { background: #E24B4A; }
+</style>
+</head>
+<body>
+
+<div id="top-area">
+  <div id="top-text-wrap">
+    <div id="top-text"></div>
+    <canvas id="top-canvas"></canvas>
+  </div>
+  <div id="top-btn-bar">
+    <button class="btn" id="top-rec-btn" onclick="toggleRecording()">● 録音開始</button>
+    <button class="btn secondary" onclick="clearText()">クリア</button>
+    <button class="btn secondary" onclick="copyText()">コピー</button>
+  </div>
+</div>
+
+<div id="mid-area" class="placeholder">録音ボタンを押して話してください</div>
+
+<div id="bot-area">
+  <div id="bot-btn-bar">
+    <span>手書きスペース</span>
+    <button class="btn secondary" id="pen-btn" onclick="togglePen()" style="flex:0;padding:6px 14px;">太字</button>
+    <button class="btn secondary" onclick="clearDrawing()" style="flex:0;padding:6px 14px;">クリア</button>
+  </div>
+  <canvas id="draw-canvas"></canvas>
+</div>
+
+<script>
+function layout() {
+  const h = window.innerHeight;
+  const top_h = Math.floor(h * 3.5 / 10);
+  const mid_h = Math.floor(h * 3.0 / 10);
+
+  document.getElementById('top-area').style.cssText += 'top:0;height:' + top_h + 'px;';
+  document.getElementById('mid-area').style.cssText += 'top:' + top_h + 'px;height:' + mid_h + 'px;';
+  document.getElementById('bot-area').style.cssText += 'top:' + (top_h + mid_h) + 'px;height:' + (h - top_h - mid_h) + 'px;';
+  resizeCanvases();
+}
+
+// 音声認識
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null, isRecording = false, accText = '';
+const midArea = document.getElementById('mid-area');
+const topText = document.getElementById('top-text');
+const topRecBtn = document.getElementById('top-rec-btn');
+
+function toggleRecording() {
+  if (isRecording) stopRecording(); else startRecording();
+}
+function startRecording() {
+  if (!SpeechRecognition) { alert('Chromeをお使いください'); return; }
+  recognition = new SpeechRecognition();
+  recognition.lang = 'ja-JP'; recognition.continuous = false; recognition.interimResults = true;
+  recognition.onresult = (e) => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    const display = accText + (final || interim);
+    midArea.textContent = display; midArea.classList.remove('placeholder');
+    topText.textContent = display;
+    if (final) accText += final;
+  };
+  recognition.onend = () => { if (isRecording) recognition.start(); };
+  recognition.onerror = (e) => { if (e.error !== 'no-speech') stopRecording(); };
+  isRecording = true; recognition.start();
+  topRecBtn.textContent = '■ 録音停止'; topRecBtn.className = 'btn recording';
+}
+function stopRecording() {
+  isRecording = false;
+  if (recognition) { recognition.stop(); recognition = null; }
+  topRecBtn.textContent = '● 録音開始'; topRecBtn.className = 'btn';
+}
+function clearText() {
+  accText = ''; midArea.textContent = '録音ボタンを押して話してください';
+  midArea.classList.add('placeholder'); topText.textContent = '';
+}
+function copyText() {
+  if (!accText) return;
+  navigator.clipboard.writeText(accText).then(() => {
+    const btn = document.querySelectorAll('#top-btn-bar .btn')[2];
+    btn.textContent = 'コピー済'; setTimeout(() => btn.textContent = 'コピー', 2000);
+  });
+}
+
+// 手書き
+const drawCanvas = document.getElementById('draw-canvas');
+const drawCtx = drawCanvas.getContext('2d');
+const topCanvas = document.getElementById('top-canvas');
+const topCtx = topCanvas.getContext('2d');
+let penWidth = 3, isThick = false, drawing = false, strokes = [], currentStroke = [];
+
+function resizeCanvases() {
+  drawCanvas.width = drawCanvas.offsetWidth; drawCanvas.height = drawCanvas.offsetHeight;
+  topCanvas.width = topCanvas.parentElement.offsetWidth;
+  topCanvas.height = topCanvas.parentElement.offsetHeight;
+  redrawAll();
+}
+function redrawAll() {
+  const sw = drawCanvas.width, sh = drawCanvas.height;
+  const tw = topCanvas.width, th = topCanvas.height;
+  drawCtx.clearRect(0, 0, sw, sh); topCtx.clearRect(0, 0, tw, th);
+  const all = [...strokes, ...(currentStroke.length >= 2 ? [currentStroke] : [])];
+  all.forEach(stroke => {
+    if (stroke.length < 2) return;
+    [[drawCtx, pt => pt.x, pt => pt.y],
+     [topCtx, pt => (sw - pt.x) * tw / sw, pt => (sh - pt.y) * th / sh]
+    ].forEach(([ctx, mx, my]) => {
+      ctx.beginPath(); ctx.lineWidth = penWidth; ctx.lineCap = 'round';
+      ctx.lineJoin = 'round'; ctx.strokeStyle = '#111';
+      ctx.moveTo(mx(stroke[0]), my(stroke[0]));
+      stroke.forEach(pt => ctx.lineTo(mx(pt), my(pt))); ctx.stroke();
+    });
+  });
+}
+function getPos(e) {
+  const r = drawCanvas.getBoundingClientRect(), s = e.touches ? e.touches[0] : e;
+  return { x: s.clientX - r.left, y: s.clientY - r.top };
+}
+drawCanvas.addEventListener('mousedown', e => { drawing = true; currentStroke = [getPos(e)]; });
+drawCanvas.addEventListener('mousemove', e => { if (!drawing) return; currentStroke.push(getPos(e)); redrawAll(); });
+drawCanvas.addEventListener('mouseup', () => { if (drawing) { strokes.push(currentStroke); currentStroke = []; drawing = false; redrawAll(); } });
+drawCanvas.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; currentStroke = [getPos(e)]; }, {passive:false});
+drawCanvas.addEventListener('touchmove', e => { e.preventDefault(); if (!drawing) return; currentStroke.push(getPos(e)); redrawAll(); }, {passive:false});
+drawCanvas.addEventListener('touchend', e => { e.preventDefault(); if (drawing) { strokes.push(currentStroke); currentStroke=[]; drawing=false; redrawAll(); } }, {passive:false});
+function clearDrawing() { strokes=[]; currentStroke=[]; redrawAll(); }
+function togglePen() {
+  isThick = !isThick; penWidth = isThick ? 7 : 3;
+  document.getElementById('pen-btn').textContent = isThick ? '細字' : '太字';
+}
+
+window.addEventListener('resize', layout);
+window.addEventListener('load', () => setTimeout(layout, 100));
+</script>
+</body>
+</html>
