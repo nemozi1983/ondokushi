@@ -131,7 +131,7 @@ function startRecording() {
     }
     const display = accText + (final || interim);
     midArea.textContent = display; midArea.classList.remove('placeholder');
-    topText.textContent = display;
+    
     if (final) accText += final;
   };
   recognition.onend = () => { if (isRecording) recognition.start(); };
@@ -146,7 +146,7 @@ function stopRecording() {
 }
 function clearText() {
   accText = ''; midArea.textContent = '録音ボタンを押して話してください';
-  midArea.classList.add('placeholder'); topText.textContent = '';
+  midArea.classList.add('placeholder'); 
 }
 function copyText() {
   if (!accText) return;
