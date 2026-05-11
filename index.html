@@ -86,6 +86,11 @@
   </div>
 </div>
 
+<div id="mid-controls" style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#F5F5F0;border-top:2px solid #888;">
+  <span style="font-size:13px;color:#666;flex:1;">音声文字起こし</span>
+  <button class="btn secondary" onclick="changeFontSize(-4)" style="flex:0;padding:4px 12px;font-size:13px;">A-</button>
+  <button class="btn secondary" onclick="changeFontSize(4)" style="flex:0;padding:4px 12px;font-size:16px;font-weight:bold;">A+</button>
+</div>
 <div id="mid-area" class="placeholder">録音ボタンを押して話してください</div>
 
 <div id="bot-area">
@@ -98,13 +103,24 @@
 </div>
 
 <script>
+let midFontSize = 36;
+function changeFontSize(delta) {
+  midFontSize = Math.min(72, Math.max(16, midFontSize + delta));
+  document.getElementById('mid-area').style.fontSize = midFontSize + 'px';
+}
+
 function layout() {
   const h = window.innerHeight;
   const top_h = Math.floor(h * 3.5 / 10);
   const mid_h = Math.floor(h * 3.0 / 10);
+  const ctrlH = 38;
 
   document.getElementById('top-area').style.cssText += 'top:0;height:' + top_h + 'px;';
-  document.getElementById('mid-area').style.cssText += 'top:' + top_h + 'px;height:' + mid_h + 'px;';
+  const mc = document.getElementById('mid-controls');
+  mc.style.position = 'absolute';
+  mc.style.left = '0'; mc.style.right = '0';
+  mc.style.top = top_h + 'px';
+  document.getElementById('mid-area').style.cssText += 'top:' + (top_h + ctrlH) + 'px;height:' + (mid_h - ctrlH) + 'px;';
   document.getElementById('bot-area').style.cssText += 'top:' + (top_h + mid_h) + 'px;height:' + (h - top_h - mid_h) + 'px;';
   resizeCanvases();
 }
