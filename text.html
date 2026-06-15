@@ -133,7 +133,8 @@
     };
 
     recognition.onerror = (event) => {
-      if (event.error === 'no-speech') return;
+      // 無音やユーザー操作による停止は無害なので無視
+      if (event.error === 'no-speech' || event.error === 'aborted') return;
       statusEl.textContent = 'エラー: ' + event.error;
     };
   } else {
