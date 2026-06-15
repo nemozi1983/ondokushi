@@ -11,11 +11,14 @@
     font-family: -apple-system, sans-serif;
     background: #fff; overflow: hidden;
     display: flex; flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
   }
 
   /* テキスト表示エリア（画面の大部分） */
   #text-area {
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
     padding: 16px 18px;
     font-size: 40px;
@@ -30,25 +33,25 @@
 
   /* ステータス */
   #status {
-    flex-shrink: 0;
+    flex: 0 0 auto;
     text-align: center;
     font-size: 13px;
     color: #888;
-    padding: 6px;
+    padding: 4px;
   }
 
   /* ボタンバー */
   #btn-bar {
-    flex-shrink: 0;
+    flex: 0 0 auto;
     display: flex;
     gap: 8px;
-    padding: 10px 12px 16px;
+    padding: 8px 12px max(8px, env(safe-area-inset-bottom));
     background: #F0F0EC;
   }
   .btn {
-    padding: 14px 4px;
+    padding: 12px 4px;
     border: none;
-    border-radius: 16px;
+    border-radius: 14px;
     font-size: 15px;
     font-weight: bold;
     cursor: pointer;
