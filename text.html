@@ -2,24 +2,27 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>音声文字起こし</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; }
-  body {
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
     font-family: -apple-system, sans-serif;
-    background: #fff; overflow: hidden;
-    display: flex; flex-direction: column;
-    height: 100vh;
-    height: 100dvh;
+    background: #fff;
   }
 
-  /* テキスト表示エリア（画面の大部分） */
+  /* ボタンバーの高さを固定 */
+  :root { --bar-h: 72px; }
+
+  /* テキスト表示エリア：上端からボタンバーの上まで */
   #text-area {
-    flex: 1 1 auto;
-    min-height: 0;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    bottom: calc(var(--bar-h) + env(safe-area-inset-bottom));
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     padding: 16px 18px;
     font-size: 40px;
     line-height: 1.5;
@@ -27,29 +30,37 @@
     background: #F8F8F6;
     word-break: break-all;
     white-space: pre-wrap;
-    -webkit-overflow-scrolling: touch;
   }
   #text-area.placeholder { color: #bbb; font-size: 20px; }
 
-  /* ステータス */
-  #status {
-    flex: 0 0 auto;
-    text-align: center;
-    font-size: 13px;
-    color: #888;
-    padding: 4px;
-  }
-
-  /* ボタンバー */
+  /* ボタンバー：画面下に固定 */
   #btn-bar {
-    flex: 0 0 auto;
+    position: fixed;
+    left: 0; right: 0;
+    bottom: 0;
+    height: calc(var(--bar-h) + env(safe-area-inset-bottom));
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    background: #F0F0EC;
     display: flex;
     gap: 8px;
-    padding: 8px 12px max(8px, env(safe-area-inset-bottom));
-    background: #F0F0EC;
+    align-items: center;
   }
+
+  /* ステータス：ボタンバーのすぐ上に小さく */
+  #status {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: calc(var(--bar-h) + env(safe-area-inset-bottom));
+    text-align: center;
+    font-size: 12px;
+    color: #888;
+    background: rgba(255,255,255,0.85);
+    padding: 2px;
+    pointer-events: none;
+  }
+
   .btn {
-    padding: 12px 4px;
+    height: 52px;
     border: none;
     border-radius: 14px;
     font-size: 15px;
@@ -61,7 +72,7 @@
   #rec-btn { flex: 2.2; }
   .btn.secondary {
     flex: 1;
-    background: transparent;
+    background: #fff;
     border: 0.5px solid #ccc;
     color: #555;
     font-weight: normal;
@@ -93,7 +104,6 @@
   let finalText = '';
   let fontSize = 40;
 
-  // Web Speech API 初期化
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (SpeechRecognition) {
     recognition = new SpeechRecognition();
@@ -117,7 +127,6 @@
     };
 
     recognition.onend = () => {
-      // 録音中なら自動で再開（連続認識を維持）
       if (isRecording) {
         try { recognition.start(); } catch (e) {}
       }
@@ -128,7 +137,7 @@
       statusEl.textContent = 'エラー: ' + event.error;
     };
   } else {
-    statusEl.textContent = 'このブラウザは音声認識に対応していません（Chromeを推奨）';
+    statusEl.textContent = 'このブラウザは音声認識に非対応です';
     recBtn.disabled = true;
   }
 
@@ -167,8 +176,7 @@
     navigator.clipboard.writeText(t).then(() => {
       statusEl.textContent = 'コピーしました';
       setTimeout(() => {
-        if (isRecording) statusEl.textContent = '録音中...';
-        else statusEl.textContent = '';
+        statusEl.textContent = isRecording ? '録音中...' : '';
       }, 1500);
     });
   }
